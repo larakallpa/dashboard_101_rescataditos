@@ -23,8 +23,7 @@ from utils.data_loader import cargar_datos
 st.set_page_config(
     page_title="Dashboard de @101_Rescataditos",
     page_icon="🐾",
-    layout="wide",  # Crucial para GCP
-    initial_sidebar_state="expanded"
+    layout="wide" 
 )
 # ------------------------------------
 # DEFINICIÓN DE CONSTANTES
@@ -83,30 +82,6 @@ def aplicar_estilo_general():
         margin-bottom: 10px !important;
     }
     
-    /* IMPORTANTE: Eliminar espacios en blanco no deseados */
-    .element-container {
-        margin-bottom: 0 !important;
-    }
-    
-    /* Eliminar espacios entre columnas */
-    .row-widget.stHorizontal {
-        gap: 0 !important;
-    }
-    
-    /* Ocultar divs vacíos */
-    div:empty {
-        display: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        height: 0 !important;
-    }
-    
-    /* Ajustar columnas para que no tengan espacio extra */
-    [data-testid="column"] {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
     /* Tarjetas de métricas - Estilo simplificado */
     .metric-card {
         background-color: white;
@@ -115,7 +90,6 @@ def aplicar_estilo_general():
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         text-align: center;
         margin-bottom: 10px;
-        height: auto !important; /* Evitar altura fija */
     }
     
     .metric-value {
@@ -126,7 +100,7 @@ def aplicar_estilo_general():
     
     .metric-title {
         font-size: 16px;
-        color: #000000;
+        color: #7f8c8d;
     }
     
     /* Estilo para las tendencias */
@@ -166,8 +140,8 @@ def aplicar_estilo_general():
     }
     
     .filtro-activo-container {
-        margin-top: 5px;
-        margin-bottom: 5px;
+        margin-top: 10px;
+        margin-bottom: 15px;
     }
     
     /* Tarjetas de contenido */
@@ -215,7 +189,6 @@ def aplicar_estilo_general():
     }
     </style>
     """, unsafe_allow_html=True)
-
 def crear_tarjeta_metrica(titulo, valor, icono, tendencia=None, tendencia_valor=None, color="#3498db"):
     """
     Crea una tarjeta de métrica con estilo mejorado, incluyendo ícono y tendencia.
