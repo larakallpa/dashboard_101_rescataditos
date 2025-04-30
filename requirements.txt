@@ -12,6 +12,5 @@ streamlit-folium
 python-dotenv
 oauth2client
 gspread
-os
 
 # Añade cualquier otra dependencia que necesites
