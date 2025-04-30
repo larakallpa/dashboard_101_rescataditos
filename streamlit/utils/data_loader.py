@@ -1,22 +1,41 @@
 # En utils/data_loader.py
 import pandas as pd
 import streamlit as st
-import gspread 
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
+import json
 from dotenv import load_dotenv
+
 @st.cache_data
 def cargar_datos(sheet_name: str) -> pd.DataFrame:
-    load_dotenv()
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credenciales.json", scopes=scope)
+    # Detectar si se está ejecutando local o en la nube
+    running_local = os.path.exists(".env")
+
+    if running_local:
+        load_dotenv()
+        creds = ServiceAccountCredentials.from_json_keyfile_name(
+            "credenciales.json",
+            scopes=[
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive",
+            ],
+        )
+    else:
+        json_creds = json.loads(os.getenv("GSHEET_CREDENTIALS"))
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_creds,
+            scopes=[
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive",
+            ],
+        )
+
     gs_client = gspread.authorize(creds)
-    spreadsheet_key = os.getenv("KEY_SHEET")        
+
+    spreadsheet_key = os.getenv("KEY_SHEET")
     spreadsheet = gs_client.open_by_key(spreadsheet_key)
-    
+
     sheet = spreadsheet.worksheet(sheet_name)
     data = sheet.get_all_values()
     headers, rows = data[0], data[1:]
@@ -34,13 +53,13 @@ def cargar_datos(sheet_name: str) -> pd.DataFrame:
         df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
         df = df.dropna(subset="Monto")
     df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
-    df = df.dropna(subset="Fecha" )
+    df = df.dropna(subset="Fecha")
 
     # Columna para agrupar
     df["MesAño"] = df["Fecha"].dt.to_period("M").astype(str)
     df["año"] = df["Fecha"].dt.year
     df["mes"] = df["Fecha"].dt.month
-    
+
     # Limpiar Mascota y Proveedor si existen
     for col in ("MASCOTA", "PROVEEDOR"):
         if col in df.columns:
