@@ -5,7 +5,6 @@ Con mejoras de diseño, funcionalidad y estructura de código
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 import folium
@@ -18,7 +17,15 @@ from datetime import datetime, timedelta
 from utils.data_loader import cargar_datos
 import os
 
+# ------------------------------------
+# CONFIGURACIÓN INICIAL
+# ------------------------------------
 
+st.set_page_config(
+    page_title="Dashboard de @101_Rescataditos",
+    page_icon="🐾",
+    layout="wide" 
+)
 # ------------------------------------
 # DEFINICIÓN DE CONSTANTES
 # ------------------------------------
@@ -42,68 +49,132 @@ COLORES = {
 # ------------------------------------
 # FUNCIONES PARA ESTILIZADO
 # ------------------------------------
-
 def aplicar_estilo_general():
     """
-    Aplica un estilo CSS simplificado que funciona bien tanto localmente como en GCP
+    Aplica el estilo general CSS a la aplicación para mantener la consistencia visual.
     """
     st.markdown("""
     <style>
-    /* Configuración básica para el layout */
+    /* Variables CSS para sistema de diseño unificado */
+    :root {
+        --color-primario: #3498db;
+        --color-secundario: #2c3e50;
+        --color-rescate: #CC7722;
+        --color-adopcion: #2ecc71;
+        --color-gastos: #e74c3c;
+        --color-donaciones: #9b59b6;
+        --color-neutral: #ecf0f1;
+        --color-alerta: #f39c12;
+        --color-texto: #2c3e50;
+        --color-texto-secundario: #000000;
+        --color-fondo: #ffffff;
+        --color-borde: #bdc3c7;
+        --radio-borde: 8px;
+        --sombra: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --espacio-xs: 4px;
+        --espacio-s: 8px;
+        --espacio-m: 16px;
+        --espacio-l: 24px;
+    }
+    
+    /* Ajustes generales de página */
     .block-container {
         padding-top: 1rem !important;
-        max-width: 95% !important;  /* Usar más espacio horizontal */
+        gap: 0.5rem !important; /* Reducir espacio entre bloques */
     }
     
-    /* Título principal */
+    /* IMPORTANTE: Arreglar el estilo del título */
     .custom-title {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: bold;
-        color: #4a4a4a;
-        padding: 10px 0;
-        margin-top: 0px;
+        color: #000000;
         text-align: center;
+        padding: 10px 0;
+        margin-top: -6px !important; /* Aseguramos que no tenga margin-top negativo */
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        display: block !important; /* Forzar que se muestre como bloque */
+        visibility: visible !important; /* Asegurar que sea visible */
     }
     
-    /* Espaciado de encabezados */
+    /* Corregir posible problema con contenedores ocultos */
+    .element-container {
+        margin-bottom: 0.5rem !important;
+        display: block !important; /* Asegurar que todos los contenedores se muestren */
+    }
+    
+    /* Solo ocultar los contenedores completamente vacíos */
+    div:empty:not(.custom-title) {
+        display: none !important;
+    }
+    
+    /* Encabezados */
     h1 {
-        margin-top: 0px !important;
-        margin-bottom: 20px !important;
+        color: var(--color-texto);
+        font-weight: 600;
+        margin-top: 0px !important; /* Cambiar de -5px a 0px */
+        margin-bottom: 15px !important;
     }
     
     h2 {
-        margin-top: 5px !important;
-        margin-bottom: 10px !important;
+        color: var(--color-texto);
+        font-weight: 500;
+        margin-top: 10px !important;
+        font-size: 1.6rem !important;
     }
     
-    /* Tarjetas de métricas - Estilo simplificado */
+    h3 {
+        color: var(--color-texto);
+        font-weight: 500;
+        margin-top: 10px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Tarjetas de métricas rediseñadas */
     .metric-card {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        margin-bottom: 10px;
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        box-shadow: var(--sombra);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        margin-bottom: 0 !important; /* Eliminar margen inferior */
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .metric-icon {
+        font-size: 28px;
+        margin-right: 10px;
+        margin-bottom: 5px;
+        display: inline-block;
+        vertical-align: middle;
     }
     
     .metric-value {
-        font-size: 24px;
+        font-size: 32px;
         font-weight: bold;
-        color: #3498db;
+        margin-bottom: 0px;
+        line-height: 1;
     }
     
     .metric-title {
-        font-size: 16px;
-        color: #7f8c8d;
+        font-size: 18px;
+        color: var(--color-texto-secundario);
+        margin-bottom: 8px;
     }
     
-    /* Estilo para las tendencias */
     .metric-trend {
         font-size: 14px;
+        margin-top: 8px;
         padding: 4px 8px;
         border-radius: 12px;
         display: inline-block;
-        margin-top: 5px;
     }
     
     .metric-trend-up {
@@ -121,10 +192,30 @@ def aplicar_estilo_general():
         color: #2980b9;
     }
     
-    /* Estilo para filtros activos */
+    /* Estilos para filtros en sidebar */
+    .filtro-seccion {
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        margin-bottom: var(--espacio-m);
+        box-shadow: var(--sombra);
+    }
+    
+    .filtro-titulo {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: var(--espacio-xs);
+        color: var(--color-texto);
+    }
+    
+    .filtro-item {
+        margin-bottom: var(--espacio-s);
+    }
+    
+    /* Etiquetas de filtros activos */
     .filtro-activo {
         display: inline-block;
-        background-color: #3498db;
+        background-color: var(--color-primario);
         color: white;
         border-radius: 16px;
         padding: 4px 12px;
@@ -138,48 +229,185 @@ def aplicar_estilo_general():
         margin-bottom: 15px;
     }
     
-    /* Tarjetas de contenido */
-    .content-card {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 15px;
+    /* Personalización de la lluvia de animales */
+    .falling-animal {
+        position: fixed;
+        top: -40px;
+        font-size: 2rem;
+        pointer-events: none;
+        user-select: none;
+        animation: fall linear infinite;
     }
     
-    /* Asegurar que el texto de tablas sea visible */
-    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="cell"],
-    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="columnheader"] {
+    @keyframes fall {
+        to { transform: translateY(110vh) rotate(360deg); }
+    }
+    
+    /* Personalización para selectores y entradas */
+    div[data-baseweb="select"] > div {
+        font-size: 0.85rem;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        min-height: 35px !important;
+        border-radius: var(--radio-borde);
+    }
+
+    div[data-baseweb="input"] > div {
+        font-size: 0.85rem;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        min-height: 35px !important;
+        border-radius: var(--radio-borde);
+    }
+    
+    section[data-testid="stSidebar"] div[class*="stSelectbox"], 
+    section[data-testid="stSidebar"] div[class*="stDateInput"] {
+        margin-bottom: 0px;
+    }
+    
+    /* Estilos para los copos adaptados con íconos de animales */
+    div[class*="Snowflake"] {
+        color: transparent !important;
+        font-size: 1.5rem !important;
+    }
+    
+    div[class*="Snowflake"]::before {
+        content: "🐶" !important;
+    }
+    
+    /* Estilos para tarjetas de contenido */
+    .content-card {
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        box-shadow: var(--sombra);
+        margin-bottom: var(--espacio-m);
+        border-top: 3px solid var(--color-primario);
+    }
+    
+    /* Sección de insights destacados */
+    .insight-card {
+        background-color: rgba(52, 152, 219, 0.1);
+        border-left: 4px solid var(--color-primario);
+        padding: var(--espacio-m);
+        margin-bottom: var(--espacio-m);
+        border-radius: 0 var(--radio-borde) var(--radio-borde) 0;
+    }
+    
+    /* Tooltips para información adicional */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+    
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: var(--color-secundario);
+        color: white;
+        text-align: center;
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-s);
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 14px;
+    }
+    
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+    /* IMPORTANTE: Asegurar que las tablas tengan color de texto visible */
+    /* Esto fuerza a que el texto en todas las tablas sea negro */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] {
         color: #000000 !important;
     }
     
-    /* Ajustes para sidebar más compacta */
-    section[data-testid="stSidebar"] .block-container {
-        padding-top: 0.5rem !important;
+    /* Asegurar que las celdas de la tabla tengan texto negro */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="cell"] {
+        color: #000000 !important;
     }
     
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3 {
-        margin-top: 5px !important;
+    /* Para encabezados de tabla */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="columnheader"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    /* Si quieres colores específicos para columnas de diferencia */
+    .color-positivo {
+        color: #2ecc71 !important;  /* Verde para positivo */
+    }
+    
+    .color-negativo {
+        color: #e74c3c !important;  /* Rojo para negativo */
+    }
+    /* REDUCIR ESPACIOS EN LA BARRA LATERAL */
+    
+    /* Reducir espaciado entre título de sección y filtros */
+    .filtro-titulo {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 2px !important; /* Reducido de var(--espacio-xs) */
+        color: var(--color-texto);
+        padding-bottom: 0 !important;
+    }
+    
+    /* Reducir espacio entre elementos de filtro */
+    section[data-testid="stSidebar"] div.stMarkdown {
         margin-bottom: 5px !important;
     }
     
-    /* Arreglo específico para visualización en GCP - forzar ancho pantalla */
-    .main .block-container {
-        max-width: 95% !important;
-        padding: 1rem !important;
+    /* Reducir espacio en general en la sidebar */
+    section[data-testid="stSidebar"] div.block-container {
+        padding-top: 0.5rem !important;
+        gap: 0.3rem !important;
     }
     
-    /* Asegurar que el diseño sea responsivo */
-    @media screen and (max-width: 1200px) {
-        .metric-value {
-            font-size: 20px;
-        }
-        
-        .metric-title {
-            font-size: 14px;
-        }
+    /* Ajustar espaciado de labels en filtros */
+    section[data-testid="stSidebar"] label {
+        margin-bottom: 0px !important;
+        font-size: 0.8rem !important;
+        padding-bottom: 0 !important;
+    }
+    
+    /* Reducir altura de selectbox */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        min-height: 30px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+    
+    /* Reducir espacio interno de selectbox */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] {
+        margin-bottom: 5px !important;
+    }
+    
+    /* Ajustar espaciado de títulos h3/h4 en sidebar */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4 {
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Ajuste general para texto en la sidebar */
+    section[data-testid="stSidebar"] div {
+        line-height: 1.1 !important;
+    }
+    
+    /* Más específico para el título de "Período de tiempo" */
+    section[data-testid="stSidebar"] div.filtro-titulo {
+        padding-bottom: 2px !important;
+        margin-bottom: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -702,57 +930,70 @@ def crear_seccion_metricas(df_mascotas, df_gastos, df_donaciones,df_mascotas_ori
         #if mensaje_insight:
         #    st.success(mensaje_insight)
  
+
+
 def crear_grafico_distribucion_tipo(df_mascotas):
     """
-    Crea el gráfico de distribución por tipo de animal con manejo robusto para GCP.
+    Crea el gráfico de distribución por tipo de animal.
+    
+    Args:
+        df_mascotas (pd.DataFrame): DataFrame de mascotas filtrado
     """
     try:
         if df_mascotas.empty or 'TipoAnimal' not in df_mascotas.columns:
             st.warning("No hay datos suficientes para mostrar la distribución por tipo de animal.")
             return
             
-        # Forzar tipo de datos a string para evitar problemas de serialización
-        df_mascotas['TipoAnimal'] = df_mascotas['TipoAnimal'].astype(str)
-        
-        # Calcular distribución explícitamente (evita problemas de value_counts en GCP)
-        type_counts = df_mascotas.groupby('TipoAnimal').size().reset_index()
+        # Calcular distribución por tipo
+        type_counts = df_mascotas['TipoAnimal'].value_counts().reset_index()
         type_counts.columns = ['TipoAnimal', 'Cantidad']
         
-        # Log de depuración
-        st.write(f"Tipos de animales encontrados: {type_counts['TipoAnimal'].tolist()}")
-        st.write(f"Cantidades: {type_counts['Cantidad'].tolist()}")
-        
-        # Crear gráfico con configuración mínima para mayor compatibilidad
+        # Crear gráfico de torta con diseño mejorado
         fig_pie = px.pie(
             type_counts,
             values='Cantidad',
             names='TipoAnimal',
             hole=0.4,
-            color_discrete_sequence=['#3498db', '#2ecc71', '#e67e22', '#f39c12']
+            color_discrete_sequence=[COLORES['primario'], COLORES['adopcion'], COLORES['rescate'], COLORES['alerta']],
         )
         
         fig_pie.update_traces(
             textposition='inside', 
-            textinfo='percent+label'
+            textinfo='percent+label',
+            marker=dict(line=dict(color=COLORES['fondo'], width=2))
         )
         
-        # Simplificar el layout para mayor compatibilidad
         fig_pie.update_layout(
-            height=400,
-            margin=dict(l=10, r=10, t=10, b=10),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+            height=350,
+            margin=dict(l=10, r=10, t=30, b=10),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.2,
+                xanchor="center",
+                x=0.5
+            ),
+            font=dict(family="Arial", size=12),
+            paper_bgcolor=COLORES['fondo'],
+            plot_bgcolor=COLORES['fondo']
         )
         
         st.plotly_chart(fig_pie, use_container_width=True)
         
+        # Mostrar estadísticas adicionales
+        total_animales = type_counts['Cantidad'].sum()
+        adoptados = df_mascotas[df_mascotas['EstadoActual'] == 'Adoptado'].shape[0] 
+  
     except Exception as e:
         st.error(f"Error al crear gráfico de distribución: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
 
 def crear_grafico_gastos_donaciones(df_gastos, df_donaciones):
     """
-    Crea el gráfico de comparación entre gastos y donaciones con manejo robusto para GCP.
+    Crea el gráfico de comparación entre gastos y donaciones.
+    
+    Args:
+        df_gastos (pd.DataFrame): DataFrame de gastos filtrado
+        df_donaciones (pd.DataFrame): DataFrame de donaciones filtrado
     """
     try:
         if (df_gastos.empty or 'Monto' not in df_gastos.columns or 
@@ -760,77 +1001,111 @@ def crear_grafico_gastos_donaciones(df_gastos, df_donaciones):
             st.warning("No hay datos suficientes para mostrar el gráfico de gastos y donaciones.")
             return
         
-        # Depuración - mostrar las primeras filas de los datos
-        with st.expander("Debug: Datos de gastos"):
-            st.write(df_gastos.head())
+        # Preparar datos de gastos mensuales
+        gastos_mensuales = df_gastos.groupby(['año', 'mes']).agg(
+            total_gastos=('Monto', 'sum'),
+            num_registros=('Monto', 'count')
+        ).reset_index()
         
-        with st.expander("Debug: Datos de donaciones"):
-            st.write(df_donaciones.head())
+        # Preparar datos de donaciones mensuales
+        donaciones_mensuales = df_donaciones.groupby(['año', 'mes']).agg(
+            total_donaciones=('Monto', 'sum')
+        ).reset_index()
         
-        # Preparar datos de forma más robusta
-        # Usar groupby con reset_index explícito para evitar problemas de índice
-        gastos_mensuales = df_gastos.groupby(['año', 'mes'], as_index=False)['Monto'].agg({
-            'total_gastos': 'sum',
-            'num_registros': 'count'
-        }).reset_index()
-        
-        donaciones_mensuales = df_donaciones.groupby(['año', 'mes'], as_index=False)['Monto'].agg({
-            'total_donaciones': 'sum'
-        }).reset_index()
-        
-        # Crear columna de fecha de forma más explícita
+        # Crear columna de fecha para ordenamiento y visualización
         gastos_mensuales['fecha'] = pd.to_datetime(
             gastos_mensuales['año'].astype(str) + '-' + 
-            gastos_mensuales['mes'].astype(str).str.zfill(2) + '-01'  # Asegurar 2 dígitos para el mes
+            gastos_mensuales['mes'].astype(str) + '-01'
         )
-        
-        donaciones_mensuales['fecha'] = pd.to_datetime(
-            donaciones_mensuales['año'].astype(str) + '-' + 
-            donaciones_mensuales['mes'].astype(str).str.zfill(2) + '-01'
-        )
-        
-        # Usar strftime después de ordenar
         gastos_mensuales = gastos_mensuales.sort_values('fecha')
         gastos_mensuales['mes_año'] = gastos_mensuales['fecha'].dt.strftime('%b %Y')
         
+        donaciones_mensuales['fecha'] = pd.to_datetime(
+            donaciones_mensuales['año'].astype(str) + '-' + 
+            donaciones_mensuales['mes'].astype(str) + '-01'
+        )
         donaciones_mensuales = donaciones_mensuales.sort_values('fecha')
         donaciones_mensuales['mes_año'] = donaciones_mensuales['fecha'].dt.strftime('%b %Y')
         
-        # Crear gráfico de líneas con Plotly
+        # Crear figura para ambas líneas
         fig = go.Figure()
         
-        # Agregar líneas con configuración simplificada
+        # Agregar línea de gastos
         fig.add_trace(go.Scatter(
             x=gastos_mensuales['fecha'],
             y=gastos_mensuales['total_gastos'],
             mode='lines+markers',
             name='Gastos',
-            line=dict(color='#e74c3c', width=2)
+            line=dict(color=COLORES['gastos'], width=3),
+            marker=dict(size=8, line=dict(width=2, color=COLORES['fondo']))
         ))
         
+        # Agregar línea de donaciones
         fig.add_trace(go.Scatter(
             x=donaciones_mensuales['fecha'],
             y=donaciones_mensuales['total_donaciones'],
             mode='lines+markers',
             name='Donaciones',
-            line=dict(color='#9b59b6', width=2)
+            line=dict(color=COLORES['donaciones'], width=3),
+            marker=dict(size=8, line=dict(width=2, color=COLORES['fondo']))
         ))
         
-        # Usar configuración más simple para el layout
+        # Configurar diseño del gráfico
         fig.update_layout(
+            title='',
             xaxis_title='Mes',
             yaxis_title='Monto ($)',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            template='simple_white',  # Usar una plantilla más básica
-            margin=dict(l=10, r=10, t=20, b=10)
+            xaxis=dict(
+                tickformat='%b %Y', 
+                tickangle=-45,
+                tickfont=dict(size=10)
+            ),
+            yaxis=dict(gridcolor=COLORES['borde']),
+            hovermode='x unified',
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            template='plotly_white',
+            margin=dict(l=10, r=10, t=20, b=10),
+            paper_bgcolor=COLORES['fondo'],
+            plot_bgcolor=COLORES['fondo']
         )
+        
+        # Añadir área sombreada para déficit (cuando gastos > donaciones)
+        for i in range(len(gastos_mensuales)):
+            if i < len(donaciones_mensuales):
+                fecha = gastos_mensuales.iloc[i]['fecha']
+                gasto = gastos_mensuales.iloc[i]['total_gastos']
+                
+                # Encontrar la donación correspondiente al mismo mes/año
+                donacion_mismo_periodo = donaciones_mensuales[
+                    (donaciones_mensuales['año'] == gastos_mensuales.iloc[i]['año']) & 
+                    (donaciones_mensuales['mes'] == gastos_mensuales.iloc[i]['mes'])
+                ]
+                
+                if not donacion_mismo_periodo.empty:
+                    donacion = donacion_mismo_periodo.iloc[0]['total_donaciones']
+                    
+                    # Si hay déficit, añadir área sombreada
+                    if gasto > donacion:
+                        fig.add_trace(go.Scatter(
+                            x=[fecha, fecha],
+                            y=[donacion, gasto],
+                            fill='tonexty',
+                            fillcolor='rgba(231, 76, 60, 0.2)',
+                            line=dict(color='rgba(0,0,0,0)'),
+                            showlegend=False,
+                            hoverinfo='none'
+                        ))
         
         st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
         st.error(f"Error al crear gráfico de gastos y donaciones: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
 
 def detalle_gastos_donaciones(filtered_gastos, filtered_donaciones):
             # Preparar datos de gastos
@@ -931,62 +1206,45 @@ def mostrar_tabla_html(df_gastos, df_donaciones):
     """
     
     st.markdown(html, unsafe_allow_html=True)
-
+  
 def crear_grafico_actividad(df_mascotas, filtros):
     """
-    Crea el gráfico de actividad con manejo robusto para GCP.
+    Crea el gráfico de actividad (rescates y adopciones).
+    
+    Args:
+        df_mascotas (pd.DataFrame): DataFrame de mascotas filtrado
+        filtros (dict): Filtros aplicados
     """
     try:
         if df_mascotas.empty:
             st.warning("No hay datos suficientes para mostrar el gráfico de actividad.")
             return
             
-        # Debug - mostrar información de los datos
-        with st.expander("Debug: Datos para gráfico de actividad"):
-            st.write(f"Forma del DataFrame: {df_mascotas.shape}")
-            st.write(f"Columnas: {df_mascotas.columns.tolist()}")
-            if 'año' in df_mascotas.columns:
-                st.write(f"Años disponibles: {df_mascotas['año'].unique()}")
-            
         año_sel = filtros.get('año', "Todos")
         
-        # Usar enfoque más simple
         if año_sel == "Todos":
-            # Agrupar por año de forma más explícita
-            if 'año' not in df_mascotas.columns:
-                st.warning("La columna 'año' no está disponible en los datos.")
-                return
-                
-            # Evitar usar agg con lambda functions (causan problemas en GCP)
-            rescates_por_año = df_mascotas.groupby('año').size().reset_index(name='Rescates')
+            # Mostrar agrupado por año
+            actividad_anual = df_mascotas.groupby('año').agg(
+                Rescates=('Nombre', 'count'),
+                Adopciones=('FechaAdopcion', lambda x: x.notna().sum())
+            ).reset_index()
             
-            # Para adopciones, usar sum() en vez de lambda con notna()
-            df_temp = df_mascotas.copy()
-            df_temp['Es_Adoptado'] = (~df_temp['FechaAdopcion'].isna()).astype(int)
-            adopciones_por_año = df_temp.groupby('año')['Es_Adoptado'].sum().reset_index(name='Adopciones')
-            
-            # Unir los dos dataframes
-            actividad_anual = pd.merge(rescates_por_año, adopciones_por_año, on='año', how='outer').fillna(0)
             actividad_anual['Periodo'] = actividad_anual['año'].astype(str)
             
-            # Usar melt sin parámetros complejos
-            rescates = actividad_anual[['Periodo', 'Rescates']].rename(columns={'Rescates': 'Cantidad'})
-            rescates['Tipo'] = 'Rescates'
+            df_plot = pd.melt(
+                actividad_anual,
+                id_vars=['Periodo'],
+                value_vars=['Rescates', 'Adopciones'],
+                var_name='Tipo',
+                value_name='Cantidad'
+            )
             
-            adopciones = actividad_anual[['Periodo', 'Adopciones']].rename(columns={'Adopciones': 'Cantidad'})
-            adopciones['Tipo'] = 'Adopciones'
-            
-            df_plot = pd.concat([rescates, adopciones], ignore_index=True)
-            
-            # Convertir cantidades a int para evitar problemas
-            df_plot['Cantidad'] = df_plot['Cantidad'].astype(int)
-            
-            # Ordenar manualmente por año
-            df_plot['año_num'] = pd.to_numeric(df_plot['Periodo'], errors='coerce')
-            df_plot = df_plot.sort_values('año_num')
-            df_plot = df_plot.drop(columns=['año_num'])
+            # Ordenar por período
+            df_plot['Periodo'] = pd.to_datetime(df_plot['Periodo'], format='%Y').dt.year.astype(str)
+            df_plot = df_plot.sort_values('Periodo')
             
         else:
+            # Mostrar agrupado por mes dentro del año seleccionado
             actividad_mensual = df_mascotas.groupby('mes').agg(
                 Rescates=('Nombre', 'count'),
                 Adopciones=('FechaAdopcion', lambda x: x.notna().sum())
@@ -1010,29 +1268,52 @@ def crear_grafico_actividad(df_mascotas, filtros):
             df_plot['mes_num'] = df_plot['Periodo'].map(meses_orden)
             df_plot = df_plot.sort_values('mes_num')
             
-            # Crear gráfico con configuración más simple
+        # Crear gráfico de barras
         fig = px.bar(
-                df_plot,
-                x='Periodo',
-                y='Cantidad',
-                color='Tipo',
-                barmode='group',
-                labels={'Periodo': 'Período', 'Cantidad': 'Cantidad', 'Tipo': ''},
-                color_discrete_map={'Rescates': '#e67e22', 'Adopciones': '#2ecc71'}
-            )
-            
+            df_plot,
+            x='Periodo',
+            y='Cantidad',
+            color='Tipo',
+            barmode='group',
+            labels={'Periodo': 'Período', 'Cantidad': 'Cantidad', 'Tipo': ''},
+            color_discrete_map={'Rescates': COLORES['rescate'], 'Adopciones': COLORES['adopcion']}
+        )
+        
         fig.update_layout(
-                margin=dict(l=10, r=10, t=10, b=0),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
+            margin=dict(l=10, r=10, t=10, b=0),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            xaxis=dict(tickangle=0),
+            paper_bgcolor=COLORES['fondo'],
+            plot_bgcolor=COLORES['fondo'],
+            yaxis=dict(gridcolor=COLORES['borde'])
+        )
         
         st.plotly_chart(fig, use_container_width=True)
         
+        # Añadir insights sobre la actividad
+        if año_sel != "Todos":
+            # Calcular tasa de adopción (adopciones/rescates)
+            total_rescates = df_plot[df_plot['Tipo'] == 'Rescates']['Cantidad'].sum()
+            total_adopciones = df_plot[df_plot['Tipo'] == 'Adopciones']['Cantidad'].sum()
+            
+            if total_rescates > 0:
+                tasa_adopcion = (total_adopciones / total_rescates) * 100
+                
+                if tasa_adopcion >= 80:
+                    st.success(f"🌟 Excelente tasa de adopción del {tasa_adopcion:.1f}% en {año_sel}!")
+                elif tasa_adopcion >= 50:
+                    st.info(f"👍 Buena tasa de adopción del {tasa_adopcion:.1f}% en {año_sel}.")
+                else:
+                    st.warning(f"⚠️ La tasa de adopción es del {tasa_adopcion:.1f}% en {año_sel}. Hay oportunidad de mejora.")
+        
     except Exception as e:
         st.error(f"Error al crear gráfico de actividad: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
-
 
 def crear_mapa_calor_adopcion(df_mascotas):
     """
@@ -1289,18 +1570,11 @@ def main():
     """
     Función principal que ejecuta el dashboard.
     """
-    st.set_page_config(
-        page_title="Dashboard de @101_Rescataditos",
-        page_icon="🐾",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
     # Aplicar estilo general
     aplicar_estilo_general()
     
     # Crear título personalizado
-    st.markdown('<div class="custom-title">🐾 Dashboard de @101_Rescataditos</div>', unsafe_allow_html=True)
-  
+    st.markdown('<div class="custom-title">🐾 Dashboard de @101_Rescataditos</div>', unsafe_allow_html=True)    
     # Añadir en la función main()
 
     is_gcp = os.environ.get('K_SERVICE') is not None
@@ -1309,7 +1583,7 @@ def main():
             st.write("Ambiente detectado: Google Cloud Run")
             st.write("Versiones de paquetes:")
             st.write(f"Pandas: {pd.__version__}")
-            st.write(f"Plotly: {plotly.__version__}")
+            st.write(f"Plotly: {px.__version__}")
             st.write(f"Streamlit: {st.__version__}")
     # ---- SIDEBAR: FILTROS ----
     with st.sidebar:
