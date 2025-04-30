@@ -1,12 +1,14 @@
+
 FROM python:3.9-slim
 
 WORKDIR /app
 
+# Copiar y instalar requerimientos
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Copiar todo el código
 COPY . .
 
-EXPOSE 8080
-
-CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.enableCORS=false"]
+# IMPORTANTE: Usa el puerto de la variable de entorno PORT
+CMD streamlit run --server.port=$PORT --server.enableCORS=false Dashboard@101_rescataditos.py
