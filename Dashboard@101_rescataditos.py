@@ -57,61 +57,126 @@ def aplicar_estilo_general():
     """
     st.markdown("""
     <style>
-    /* Configuración básica para el layout */
+    /* Variables CSS para sistema de diseño unificado */
+    :root {
+        --color-primario: #3498db;
+        --color-secundario: #2c3e50;
+        --color-rescate: #CC7722;
+        --color-adopcion: #2ecc71;
+        --color-gastos: #e74c3c;
+        --color-donaciones: #9b59b6;
+        --color-neutral: #ecf0f1;
+        --color-alerta: #f39c12;
+        --color-texto: #2c3e50;
+        --color-texto-secundario: #000000;
+        --color-fondo: #ffffff;
+        --color-borde: #bdc3c7;
+        --radio-borde: 8px;
+        --sombra: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --espacio-xs: 4px;
+        --espacio-s: 8px;
+        --espacio-m: 16px;
+        --espacio-l: 24px;
+    }
+    
+    /* Ajustes generales de página */
     .block-container {
         padding-top: 1rem !important;
-        max-width: 95% !important;  /* Usar más espacio horizontal */
+        gap: 0.5rem !important; /* Reducir espacio entre bloques */
     }
     
-    /* Título principal */
+    /* IMPORTANTE: Arreglar el estilo del título */
     .custom-title {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: bold;
-        color: #4a4a4a;
-        padding: 10px 0;
-        margin-top: 0px;
+        color: #000000;
         text-align: center;
+        padding: 10px 0;
+        margin-top: -6px !important; /* Aseguramos que no tenga margin-top negativo */
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        display: block !important; /* Forzar que se muestre como bloque */
+        visibility: visible !important; /* Asegurar que sea visible */
     }
     
-    /* Espaciado de encabezados */
+    /* Corregir posible problema con contenedores ocultos */
+    .element-container {
+        margin-bottom: 0.5rem !important;
+        display: block !important; /* Asegurar que todos los contenedores se muestren */
+    }
+    
+    /* Solo ocultar los contenedores completamente vacíos */
+    div:empty:not(.custom-title) {
+        display: none !important;
+    }
+    
+    /* Encabezados */
     h1 {
-        margin-top: 0px !important;
-        margin-bottom: 20px !important;
+        color: var(--color-texto);
+        font-weight: 600;
+        margin-top: 0px !important; /* Cambiar de -5px a 0px */
+        margin-bottom: 15px !important;
     }
     
     h2 {
-        margin-top: 5px !important;
-        margin-bottom: 10px !important;
+        color: var(--color-texto);
+        font-weight: 500;
+        margin-top: 10px !important;
+        font-size: 1.6rem !important;
     }
     
-    /* Tarjetas de métricas - Estilo simplificado */
+    h3 {
+        color: var(--color-texto);
+        font-weight: 500;
+        margin-top: 10px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Tarjetas de métricas rediseñadas */
     .metric-card {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        margin-bottom: 10px;
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        box-shadow: var(--sombra);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        margin-bottom: 0 !important; /* Eliminar margen inferior */
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .metric-icon {
+        font-size: 28px;
+        margin-right: 10px;
+        margin-bottom: 5px;
+        display: inline-block;
+        vertical-align: middle;
     }
     
     .metric-value {
-        font-size: 24px;
+        font-size: 32px;
         font-weight: bold;
-        color: #3498db;
+        margin-bottom: 0px;
+        line-height: 1;
     }
     
     .metric-title {
-        font-size: 16px;
-        color: #7f8c8d;
+        font-size: 18px;
+        color: var(--color-texto-secundario);
+        margin-bottom: 8px;
     }
     
-    /* Estilo para las tendencias */
     .metric-trend {
         font-size: 14px;
+        margin-top: 8px;
         padding: 4px 8px;
         border-radius: 12px;
         display: inline-block;
-        margin-top: 5px;
     }
     
     .metric-trend-up {
@@ -129,10 +194,30 @@ def aplicar_estilo_general():
         color: #2980b9;
     }
     
-    /* Estilo para filtros activos */
+    /* Estilos para filtros en sidebar */
+    .filtro-seccion {
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        margin-bottom: var(--espacio-m);
+        box-shadow: var(--sombra);
+    }
+    
+    .filtro-titulo {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: var(--espacio-xs);
+        color: var(--color-texto);
+    }
+    
+    .filtro-item {
+        margin-bottom: var(--espacio-s);
+    }
+    
+    /* Etiquetas de filtros activos */
     .filtro-activo {
         display: inline-block;
-        background-color: #3498db;
+        background-color: var(--color-primario);
         color: white;
         border-radius: 16px;
         padding: 4px 12px;
@@ -146,48 +231,185 @@ def aplicar_estilo_general():
         margin-bottom: 15px;
     }
     
-    /* Tarjetas de contenido */
-    .content-card {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 15px;
+    /* Personalización de la lluvia de animales */
+    .falling-animal {
+        position: fixed;
+        top: -40px;
+        font-size: 2rem;
+        pointer-events: none;
+        user-select: none;
+        animation: fall linear infinite;
     }
     
-    /* Asegurar que el texto de tablas sea visible */
-    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="cell"],
-    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="columnheader"] {
+    @keyframes fall {
+        to { transform: translateY(110vh) rotate(360deg); }
+    }
+    
+    /* Personalización para selectores y entradas */
+    div[data-baseweb="select"] > div {
+        font-size: 0.85rem;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        min-height: 35px !important;
+        border-radius: var(--radio-borde);
+    }
+
+    div[data-baseweb="input"] > div {
+        font-size: 0.85rem;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        min-height: 35px !important;
+        border-radius: var(--radio-borde);
+    }
+    
+    section[data-testid="stSidebar"] div[class*="stSelectbox"], 
+    section[data-testid="stSidebar"] div[class*="stDateInput"] {
+        margin-bottom: 0px;
+    }
+    
+    /* Estilos para los copos adaptados con íconos de animales */
+    div[class*="Snowflake"] {
+        color: transparent !important;
+        font-size: 1.5rem !important;
+    }
+    
+    div[class*="Snowflake"]::before {
+        content: "🐶" !important;
+    }
+    
+    /* Estilos para tarjetas de contenido */
+    .content-card {
+        background-color: var(--color-fondo);
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-m);
+        box-shadow: var(--sombra);
+        margin-bottom: var(--espacio-m);
+        border-top: 3px solid var(--color-primario);
+    }
+    
+    /* Sección de insights destacados */
+    .insight-card {
+        background-color: rgba(52, 152, 219, 0.1);
+        border-left: 4px solid var(--color-primario);
+        padding: var(--espacio-m);
+        margin-bottom: var(--espacio-m);
+        border-radius: 0 var(--radio-borde) var(--radio-borde) 0;
+    }
+    
+    /* Tooltips para información adicional */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+    
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: var(--color-secundario);
+        color: white;
+        text-align: center;
+        border-radius: var(--radio-borde);
+        padding: var(--espacio-s);
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 14px;
+    }
+    
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+    /* IMPORTANTE: Asegurar que las tablas tengan color de texto visible */
+    /* Esto fuerza a que el texto en todas las tablas sea negro */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] {
         color: #000000 !important;
     }
     
-    /* Ajustes para sidebar más compacta */
-    section[data-testid="stSidebar"] .block-container {
-        padding-top: 0.5rem !important;
+    /* Asegurar que las celdas de la tabla tengan texto negro */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="cell"] {
+        color: #000000 !important;
     }
     
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3 {
-        margin-top: 5px !important;
+    /* Para encabezados de tabla */
+    .stDataFrame [data-testid="stDataFrameContainer"] div[data-testid="stDataFrame"] div[role="columnheader"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    /* Si quieres colores específicos para columnas de diferencia */
+    .color-positivo {
+        color: #2ecc71 !important;  /* Verde para positivo */
+    }
+    
+    .color-negativo {
+        color: #e74c3c !important;  /* Rojo para negativo */
+    }
+    /* REDUCIR ESPACIOS EN LA BARRA LATERAL */
+    
+    /* Reducir espaciado entre título de sección y filtros */
+    .filtro-titulo {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 2px !important; /* Reducido de var(--espacio-xs) */
+        color: var(--color-texto);
+        padding-bottom: 0 !important;
+    }
+    
+    /* Reducir espacio entre elementos de filtro */
+    section[data-testid="stSidebar"] div.stMarkdown {
         margin-bottom: 5px !important;
     }
     
-    /* Arreglo específico para visualización en GCP - forzar ancho pantalla */
-    .main .block-container {
-        max-width: 95% !important;
-        padding: 1rem !important;
+    /* Reducir espacio en general en la sidebar */
+    section[data-testid="stSidebar"] div.block-container {
+        padding-top: 0.5rem !important;
+        gap: 0.3rem !important;
     }
     
-    /* Asegurar que el diseño sea responsivo */
-    @media screen and (max-width: 1200px) {
-        .metric-value {
-            font-size: 20px;
-        }
-        
-        .metric-title {
-            font-size: 14px;
-        }
+    /* Ajustar espaciado de labels en filtros */
+    section[data-testid="stSidebar"] label {
+        margin-bottom: 0px !important;
+        font-size: 0.8rem !important;
+        padding-bottom: 0 !important;
+    }
+    
+    /* Reducir altura de selectbox */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        min-height: 30px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+    
+    /* Reducir espacio interno de selectbox */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] {
+        margin-bottom: 5px !important;
+    }
+    
+    /* Ajustar espaciado de títulos h3/h4 en sidebar */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4 {
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Ajuste general para texto en la sidebar */
+    section[data-testid="stSidebar"] div {
+        line-height: 1.1 !important;
+    }
+    
+    /* Más específico para el título de "Período de tiempo" */
+    section[data-testid="stSidebar"] div.filtro-titulo {
+        padding-bottom: 2px !important;
+        margin-bottom: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
