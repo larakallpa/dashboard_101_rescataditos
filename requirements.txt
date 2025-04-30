@@ -1,12 +1,12 @@
 streamlit==1.26.0
 gspread==5.10.0
-pandas==2.0.3
 google-auth==2.22.0
 python-dotenv==1.0.0
-streamlit
+pandas==2.2.3
+plotly==6.0.1
+streamlit==1.44.1
 pandas
 numpy
-plotly
 folium
 streamlit-folium
 python-dotenv
