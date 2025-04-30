@@ -1308,7 +1308,7 @@ def main():
             st.write("Ambiente detectado: Google Cloud Run")
             st.write("Versiones de paquetes:")
             st.write(f"Pandas: {pd.__version__}")
-            st.write(f"Plotly: {px.__version__}")
+            st.write(f"Plotly: {plotly.__version__}")
             st.write(f"Streamlit: {st.__version__}")
     # ---- SIDEBAR: FILTROS ----
     with st.sidebar:
