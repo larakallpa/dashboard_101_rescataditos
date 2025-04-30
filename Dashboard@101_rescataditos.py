@@ -17,15 +17,7 @@ from datetime import datetime, timedelta
 from utils.data_loader import cargar_datos
 import os
 
-# ------------------------------------
-# CONFIGURACIÓN INICIAL
-# ------------------------------------
 
-st.set_page_config(
-    page_title="Dashboard de @101_Rescataditos",
-    page_icon="🐾",
-    layout="wide" 
-)
 # ------------------------------------
 # DEFINICIÓN DE CONSTANTES
 # ------------------------------------
@@ -938,7 +930,8 @@ def mostrar_tabla_html(df_gastos, df_donaciones):
     """
     
     st.markdown(html, unsafe_allow_html=True)
- def crear_grafico_actividad(df_mascotas, filtros):
+
+def crear_grafico_actividad(df_mascotas, filtros):
     """
     Crea el gráfico de actividad con manejo robusto para GCP.
     """
@@ -993,24 +986,44 @@ def mostrar_tabla_html(df_gastos, df_donaciones):
             df_plot = df_plot.drop(columns=['año_num'])
             
         else:
-            # Código para cuando se selecciona un año específico
-            # Similarmente simplificar el código...
+            actividad_mensual = df_mascotas.groupby('mes').agg(
+                Rescates=('Nombre', 'count'),
+                Adopciones=('FechaAdopcion', lambda x: x.notna().sum())
+            ).reset_index()
             
-        # Crear gráfico con configuración más simple
+            # Convertir número de mes a nombre (e.g. 1 → Ene)
+            actividad_mensual['Periodo'] = actividad_mensual['mes'].apply(
+                lambda m: pd.to_datetime(f'2023-{m}-01').strftime('%b')
+            )
+            
+            df_plot = pd.melt(
+                actividad_mensual,
+                id_vars=['Periodo', 'mes'],
+                value_vars=['Rescates', 'Adopciones'],
+                var_name='Tipo',
+                value_name='Cantidad'
+            )
+            
+            # Ordenar por mes
+            meses_orden = {pd.to_datetime(f'2023-{i}-01').strftime('%b'): i for i in range(1, 13)}
+            df_plot['mes_num'] = df_plot['Periodo'].map(meses_orden)
+            df_plot = df_plot.sort_values('mes_num')
+            
+            # Crear gráfico con configuración más simple
         fig = px.bar(
-            df_plot,
-            x='Periodo',
-            y='Cantidad',
-            color='Tipo',
-            barmode='group',
-            labels={'Periodo': 'Período', 'Cantidad': 'Cantidad', 'Tipo': ''},
-            color_discrete_map={'Rescates': '#e67e22', 'Adopciones': '#2ecc71'}
-        )
-        
+                df_plot,
+                x='Periodo',
+                y='Cantidad',
+                color='Tipo',
+                barmode='group',
+                labels={'Periodo': 'Período', 'Cantidad': 'Cantidad', 'Tipo': ''},
+                color_discrete_map={'Rescates': '#e67e22', 'Adopciones': '#2ecc71'}
+            )
+            
         fig.update_layout(
-            margin=dict(l=10, r=10, t=10, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
+                margin=dict(l=10, r=10, t=10, b=0),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
         
         st.plotly_chart(fig, use_container_width=True)
         
@@ -1275,17 +1288,18 @@ def main():
     """
     Función principal que ejecuta el dashboard.
     """
-    # Aplicar estilo general
-    aplicar_estilo_general()
-    
-    # Crear título personalizado
     st.set_page_config(
         page_title="Dashboard de @101_Rescataditos",
         page_icon="🐾",
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    # Aplicar estilo general
+    aplicar_estilo_general()
     
+    # Crear título personalizado
+    st.markdown('<div class="custom-title">🐾 Dashboard de @101_Rescataditos</div>', unsafe_allow_html=True)
+  
     # Añadir en la función main()
 
     is_gcp = os.environ.get('K_SERVICE') is not None
