@@ -5,6 +5,7 @@ Con mejoras de diseño, funcionalidad y estructura de código
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 import folium
