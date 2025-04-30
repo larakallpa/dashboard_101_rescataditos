@@ -1575,16 +1575,7 @@ def main():
     
     # Crear título personalizado
     st.markdown('<div class="custom-title">🐾 Dashboard de @101_Rescataditos</div>', unsafe_allow_html=True)    
-    # Añadir en la función main()
-
-    is_gcp = os.environ.get('K_SERVICE') is not None
-    if is_gcp:
-        with st.expander("Información de diagnóstico (solo en GCP)", expanded=False):
-            st.write("Ambiente detectado: Google Cloud Run")
-            st.write("Versiones de paquetes:")
-            st.write(f"Pandas: {pd.__version__}")
-            st.write(f"Plotly: {px.__version__}")
-            st.write(f"Streamlit: {st.__version__}")
+   
     # ---- SIDEBAR: FILTROS ----
     with st.sidebar:
         st.markdown('<hr style="margin: 15px 0 15px 0; border-color: #ddd;">', unsafe_allow_html=True)

@@ -1,5 +1,13 @@
-
 FROM python:3.9-slim
+
+# Instalar locales
+RUN apt-get update && apt-get install -y locales \
+    && sed -i -e 's/# es_ES.UTF-8 UTF-8/es_ES.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen
+
+# Configurar variables de entorno
+ENV LANG es_ES.UTF-8
+ENV LC_ALL es_ES.UTF-8
 
 WORKDIR /app
 
