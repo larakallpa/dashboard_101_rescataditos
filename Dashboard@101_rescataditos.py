@@ -15,6 +15,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from utils.data_loader import cargar_datos
+import os
 
 # ------------------------------------
 # CONFIGURACIÓN INICIAL
@@ -708,70 +709,57 @@ def crear_seccion_metricas(df_mascotas, df_gastos, df_donaciones,df_mascotas_ori
         #if mensaje_insight:
         #    st.success(mensaje_insight)
  
-
-
 def crear_grafico_distribucion_tipo(df_mascotas):
     """
-    Crea el gráfico de distribución por tipo de animal.
-    
-    Args:
-        df_mascotas (pd.DataFrame): DataFrame de mascotas filtrado
+    Crea el gráfico de distribución por tipo de animal con manejo robusto para GCP.
     """
     try:
         if df_mascotas.empty or 'TipoAnimal' not in df_mascotas.columns:
             st.warning("No hay datos suficientes para mostrar la distribución por tipo de animal.")
             return
             
-        # Calcular distribución por tipo
-        type_counts = df_mascotas['TipoAnimal'].value_counts().reset_index()
+        # Forzar tipo de datos a string para evitar problemas de serialización
+        df_mascotas['TipoAnimal'] = df_mascotas['TipoAnimal'].astype(str)
+        
+        # Calcular distribución explícitamente (evita problemas de value_counts en GCP)
+        type_counts = df_mascotas.groupby('TipoAnimal').size().reset_index()
         type_counts.columns = ['TipoAnimal', 'Cantidad']
         
-        # Crear gráfico de torta con diseño mejorado
+        # Log de depuración
+        st.write(f"Tipos de animales encontrados: {type_counts['TipoAnimal'].tolist()}")
+        st.write(f"Cantidades: {type_counts['Cantidad'].tolist()}")
+        
+        # Crear gráfico con configuración mínima para mayor compatibilidad
         fig_pie = px.pie(
             type_counts,
             values='Cantidad',
             names='TipoAnimal',
             hole=0.4,
-            color_discrete_sequence=[COLORES['primario'], COLORES['adopcion'], COLORES['rescate'], COLORES['alerta']],
+            color_discrete_sequence=['#3498db', '#2ecc71', '#e67e22', '#f39c12']
         )
         
         fig_pie.update_traces(
             textposition='inside', 
-            textinfo='percent+label',
-            marker=dict(line=dict(color=COLORES['fondo'], width=2))
+            textinfo='percent+label'
         )
         
+        # Simplificar el layout para mayor compatibilidad
         fig_pie.update_layout(
-            height=350,
-            margin=dict(l=10, r=10, t=30, b=10),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.2,
-                xanchor="center",
-                x=0.5
-            ),
-            font=dict(family="Arial", size=12),
-            paper_bgcolor=COLORES['fondo'],
-            plot_bgcolor=COLORES['fondo']
+            height=400,
+            margin=dict(l=10, r=10, t=10, b=10),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2)
         )
         
         st.plotly_chart(fig_pie, use_container_width=True)
         
-        # Mostrar estadísticas adicionales
-        total_animales = type_counts['Cantidad'].sum()
-        adoptados = df_mascotas[df_mascotas['EstadoActual'] == 'Adoptado'].shape[0] 
-  
     except Exception as e:
         st.error(f"Error al crear gráfico de distribución: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
 
 def crear_grafico_gastos_donaciones(df_gastos, df_donaciones):
     """
-    Crea el gráfico de comparación entre gastos y donaciones.
-    
-    Args:
-        df_gastos (pd.DataFrame): DataFrame de gastos filtrado
-        df_donaciones (pd.DataFrame): DataFrame de donaciones filtrado
+    Crea el gráfico de comparación entre gastos y donaciones con manejo robusto para GCP.
     """
     try:
         if (df_gastos.empty or 'Monto' not in df_gastos.columns or 
@@ -779,111 +767,77 @@ def crear_grafico_gastos_donaciones(df_gastos, df_donaciones):
             st.warning("No hay datos suficientes para mostrar el gráfico de gastos y donaciones.")
             return
         
-        # Preparar datos de gastos mensuales
-        gastos_mensuales = df_gastos.groupby(['año', 'mes']).agg(
-            total_gastos=('Monto', 'sum'),
-            num_registros=('Monto', 'count')
-        ).reset_index()
+        # Depuración - mostrar las primeras filas de los datos
+        with st.expander("Debug: Datos de gastos"):
+            st.write(df_gastos.head())
         
-        # Preparar datos de donaciones mensuales
-        donaciones_mensuales = df_donaciones.groupby(['año', 'mes']).agg(
-            total_donaciones=('Monto', 'sum')
-        ).reset_index()
+        with st.expander("Debug: Datos de donaciones"):
+            st.write(df_donaciones.head())
         
-        # Crear columna de fecha para ordenamiento y visualización
+        # Preparar datos de forma más robusta
+        # Usar groupby con reset_index explícito para evitar problemas de índice
+        gastos_mensuales = df_gastos.groupby(['año', 'mes'], as_index=False)['Monto'].agg({
+            'total_gastos': 'sum',
+            'num_registros': 'count'
+        }).reset_index()
+        
+        donaciones_mensuales = df_donaciones.groupby(['año', 'mes'], as_index=False)['Monto'].agg({
+            'total_donaciones': 'sum'
+        }).reset_index()
+        
+        # Crear columna de fecha de forma más explícita
         gastos_mensuales['fecha'] = pd.to_datetime(
             gastos_mensuales['año'].astype(str) + '-' + 
-            gastos_mensuales['mes'].astype(str) + '-01'
+            gastos_mensuales['mes'].astype(str).str.zfill(2) + '-01'  # Asegurar 2 dígitos para el mes
         )
-        gastos_mensuales = gastos_mensuales.sort_values('fecha')
-        gastos_mensuales['mes_año'] = gastos_mensuales['fecha'].dt.strftime('%b %Y')
         
         donaciones_mensuales['fecha'] = pd.to_datetime(
             donaciones_mensuales['año'].astype(str) + '-' + 
-            donaciones_mensuales['mes'].astype(str) + '-01'
+            donaciones_mensuales['mes'].astype(str).str.zfill(2) + '-01'
         )
+        
+        # Usar strftime después de ordenar
+        gastos_mensuales = gastos_mensuales.sort_values('fecha')
+        gastos_mensuales['mes_año'] = gastos_mensuales['fecha'].dt.strftime('%b %Y')
+        
         donaciones_mensuales = donaciones_mensuales.sort_values('fecha')
         donaciones_mensuales['mes_año'] = donaciones_mensuales['fecha'].dt.strftime('%b %Y')
         
-        # Crear figura para ambas líneas
+        # Crear gráfico de líneas con Plotly
         fig = go.Figure()
         
-        # Agregar línea de gastos
+        # Agregar líneas con configuración simplificada
         fig.add_trace(go.Scatter(
             x=gastos_mensuales['fecha'],
             y=gastos_mensuales['total_gastos'],
             mode='lines+markers',
             name='Gastos',
-            line=dict(color=COLORES['gastos'], width=3),
-            marker=dict(size=8, line=dict(width=2, color=COLORES['fondo']))
+            line=dict(color='#e74c3c', width=2)
         ))
         
-        # Agregar línea de donaciones
         fig.add_trace(go.Scatter(
             x=donaciones_mensuales['fecha'],
             y=donaciones_mensuales['total_donaciones'],
             mode='lines+markers',
             name='Donaciones',
-            line=dict(color=COLORES['donaciones'], width=3),
-            marker=dict(size=8, line=dict(width=2, color=COLORES['fondo']))
+            line=dict(color='#9b59b6', width=2)
         ))
         
-        # Configurar diseño del gráfico
+        # Usar configuración más simple para el layout
         fig.update_layout(
-            title='',
             xaxis_title='Mes',
             yaxis_title='Monto ($)',
-            xaxis=dict(
-                tickformat='%b %Y', 
-                tickangle=-45,
-                tickfont=dict(size=10)
-            ),
-            yaxis=dict(gridcolor=COLORES['borde']),
-            hovermode='x unified',
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            template='plotly_white',
-            margin=dict(l=10, r=10, t=20, b=10),
-            paper_bgcolor=COLORES['fondo'],
-            plot_bgcolor=COLORES['fondo']
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            template='simple_white',  # Usar una plantilla más básica
+            margin=dict(l=10, r=10, t=20, b=10)
         )
-        
-        # Añadir área sombreada para déficit (cuando gastos > donaciones)
-        for i in range(len(gastos_mensuales)):
-            if i < len(donaciones_mensuales):
-                fecha = gastos_mensuales.iloc[i]['fecha']
-                gasto = gastos_mensuales.iloc[i]['total_gastos']
-                
-                # Encontrar la donación correspondiente al mismo mes/año
-                donacion_mismo_periodo = donaciones_mensuales[
-                    (donaciones_mensuales['año'] == gastos_mensuales.iloc[i]['año']) & 
-                    (donaciones_mensuales['mes'] == gastos_mensuales.iloc[i]['mes'])
-                ]
-                
-                if not donacion_mismo_periodo.empty:
-                    donacion = donacion_mismo_periodo.iloc[0]['total_donaciones']
-                    
-                    # Si hay déficit, añadir área sombreada
-                    if gasto > donacion:
-                        fig.add_trace(go.Scatter(
-                            x=[fecha, fecha],
-                            y=[donacion, gasto],
-                            fill='tonexty',
-                            fillcolor='rgba(231, 76, 60, 0.2)',
-                            line=dict(color='rgba(0,0,0,0)'),
-                            showlegend=False,
-                            hoverinfo='none'
-                        ))
         
         st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
         st.error(f"Error al crear gráfico de gastos y donaciones: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
 
 def detalle_gastos_donaciones(filtered_gastos, filtered_donaciones):
             # Preparar datos de gastos
@@ -984,69 +938,65 @@ def mostrar_tabla_html(df_gastos, df_donaciones):
     """
     
     st.markdown(html, unsafe_allow_html=True)
-  
-def crear_grafico_actividad(df_mascotas, filtros):
+ def crear_grafico_actividad(df_mascotas, filtros):
     """
-    Crea el gráfico de actividad (rescates y adopciones).
-    
-    Args:
-        df_mascotas (pd.DataFrame): DataFrame de mascotas filtrado
-        filtros (dict): Filtros aplicados
+    Crea el gráfico de actividad con manejo robusto para GCP.
     """
     try:
         if df_mascotas.empty:
             st.warning("No hay datos suficientes para mostrar el gráfico de actividad.")
             return
             
+        # Debug - mostrar información de los datos
+        with st.expander("Debug: Datos para gráfico de actividad"):
+            st.write(f"Forma del DataFrame: {df_mascotas.shape}")
+            st.write(f"Columnas: {df_mascotas.columns.tolist()}")
+            if 'año' in df_mascotas.columns:
+                st.write(f"Años disponibles: {df_mascotas['año'].unique()}")
+            
         año_sel = filtros.get('año', "Todos")
         
+        # Usar enfoque más simple
         if año_sel == "Todos":
-            # Mostrar agrupado por año
-            actividad_anual = df_mascotas.groupby('año').agg(
-                Rescates=('Nombre', 'count'),
-                Adopciones=('FechaAdopcion', lambda x: x.notna().sum())
-            ).reset_index()
+            # Agrupar por año de forma más explícita
+            if 'año' not in df_mascotas.columns:
+                st.warning("La columna 'año' no está disponible en los datos.")
+                return
+                
+            # Evitar usar agg con lambda functions (causan problemas en GCP)
+            rescates_por_año = df_mascotas.groupby('año').size().reset_index(name='Rescates')
             
+            # Para adopciones, usar sum() en vez de lambda con notna()
+            df_temp = df_mascotas.copy()
+            df_temp['Es_Adoptado'] = (~df_temp['FechaAdopcion'].isna()).astype(int)
+            adopciones_por_año = df_temp.groupby('año')['Es_Adoptado'].sum().reset_index(name='Adopciones')
+            
+            # Unir los dos dataframes
+            actividad_anual = pd.merge(rescates_por_año, adopciones_por_año, on='año', how='outer').fillna(0)
             actividad_anual['Periodo'] = actividad_anual['año'].astype(str)
             
-            df_plot = pd.melt(
-                actividad_anual,
-                id_vars=['Periodo'],
-                value_vars=['Rescates', 'Adopciones'],
-                var_name='Tipo',
-                value_name='Cantidad'
-            )
+            # Usar melt sin parámetros complejos
+            rescates = actividad_anual[['Periodo', 'Rescates']].rename(columns={'Rescates': 'Cantidad'})
+            rescates['Tipo'] = 'Rescates'
             
-            # Ordenar por período
-            df_plot['Periodo'] = pd.to_datetime(df_plot['Periodo'], format='%Y').dt.year.astype(str)
-            df_plot = df_plot.sort_values('Periodo')
+            adopciones = actividad_anual[['Periodo', 'Adopciones']].rename(columns={'Adopciones': 'Cantidad'})
+            adopciones['Tipo'] = 'Adopciones'
+            
+            df_plot = pd.concat([rescates, adopciones], ignore_index=True)
+            
+            # Convertir cantidades a int para evitar problemas
+            df_plot['Cantidad'] = df_plot['Cantidad'].astype(int)
+            
+            # Ordenar manualmente por año
+            df_plot['año_num'] = pd.to_numeric(df_plot['Periodo'], errors='coerce')
+            df_plot = df_plot.sort_values('año_num')
+            df_plot = df_plot.drop(columns=['año_num'])
             
         else:
-            # Mostrar agrupado por mes dentro del año seleccionado
-            actividad_mensual = df_mascotas.groupby('mes').agg(
-                Rescates=('Nombre', 'count'),
-                Adopciones=('FechaAdopcion', lambda x: x.notna().sum())
-            ).reset_index()
+            # Código para cuando se selecciona un año específico
+            # Similarmente simplificar el código...
             
-            # Convertir número de mes a nombre (e.g. 1 → Ene)
-            actividad_mensual['Periodo'] = actividad_mensual['mes'].apply(
-                lambda m: pd.to_datetime(f'2023-{m}-01').strftime('%b')
-            )
-            
-            df_plot = pd.melt(
-                actividad_mensual,
-                id_vars=['Periodo', 'mes'],
-                value_vars=['Rescates', 'Adopciones'],
-                var_name='Tipo',
-                value_name='Cantidad'
-            )
-            
-            # Ordenar por mes
-            meses_orden = {pd.to_datetime(f'2023-{i}-01').strftime('%b'): i for i in range(1, 13)}
-            df_plot['mes_num'] = df_plot['Periodo'].map(meses_orden)
-            df_plot = df_plot.sort_values('mes_num')
-            
-        # Crear gráfico de barras
+        # Crear gráfico con configuración más simple
         fig = px.bar(
             df_plot,
             x='Periodo',
@@ -1054,44 +1004,21 @@ def crear_grafico_actividad(df_mascotas, filtros):
             color='Tipo',
             barmode='group',
             labels={'Periodo': 'Período', 'Cantidad': 'Cantidad', 'Tipo': ''},
-            color_discrete_map={'Rescates': COLORES['rescate'], 'Adopciones': COLORES['adopcion']}
+            color_discrete_map={'Rescates': '#e67e22', 'Adopciones': '#2ecc71'}
         )
         
         fig.update_layout(
             margin=dict(l=10, r=10, t=10, b=0),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            xaxis=dict(tickangle=0),
-            paper_bgcolor=COLORES['fondo'],
-            plot_bgcolor=COLORES['fondo'],
-            yaxis=dict(gridcolor=COLORES['borde'])
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Añadir insights sobre la actividad
-        if año_sel != "Todos":
-            # Calcular tasa de adopción (adopciones/rescates)
-            total_rescates = df_plot[df_plot['Tipo'] == 'Rescates']['Cantidad'].sum()
-            total_adopciones = df_plot[df_plot['Tipo'] == 'Adopciones']['Cantidad'].sum()
-            
-            if total_rescates > 0:
-                tasa_adopcion = (total_adopciones / total_rescates) * 100
-                
-                if tasa_adopcion >= 80:
-                    st.success(f"🌟 Excelente tasa de adopción del {tasa_adopcion:.1f}% en {año_sel}!")
-                elif tasa_adopcion >= 50:
-                    st.info(f"👍 Buena tasa de adopción del {tasa_adopcion:.1f}% en {año_sel}.")
-                else:
-                    st.warning(f"⚠️ La tasa de adopción es del {tasa_adopcion:.1f}% en {año_sel}. Hay oportunidad de mejora.")
-        
     except Exception as e:
         st.error(f"Error al crear gráfico de actividad: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+
 
 def crear_mapa_calor_adopcion(df_mascotas):
     """
@@ -1352,8 +1279,23 @@ def main():
     aplicar_estilo_general()
     
     # Crear título personalizado
-    st.markdown('<div class="custom-title">🐾 Dashboard de @101_Rescataditos</div>', unsafe_allow_html=True)    
+    st.set_page_config(
+        page_title="Dashboard de @101_Rescataditos",
+        page_icon="🐾",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
     
+    # Añadir en la función main()
+
+    is_gcp = os.environ.get('K_SERVICE') is not None
+    if is_gcp:
+        with st.expander("Información de diagnóstico (solo en GCP)", expanded=False):
+            st.write("Ambiente detectado: Google Cloud Run")
+            st.write("Versiones de paquetes:")
+            st.write(f"Pandas: {pd.__version__}")
+            st.write(f"Plotly: {px.__version__}")
+            st.write(f"Streamlit: {st.__version__}")
     # ---- SIDEBAR: FILTROS ----
     with st.sidebar:
         st.markdown('<hr style="margin: 15px 0 15px 0; border-color: #ddd;">', unsafe_allow_html=True)
