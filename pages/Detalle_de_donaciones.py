@@ -65,7 +65,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-# Crear tu título personalizado donde desees
+
 st.markdown('<div class="custom-title">Donaciones</div>', unsafe_allow_html=True)
  
 df_donaciones = st.session_state.df_donaciones
