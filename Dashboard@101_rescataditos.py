@@ -592,7 +592,7 @@ def procesar_datos_mascotas(df):
         # Asignar coordenadas aproximadas para ubicaciones
         # Define coordenadas base para Capital Federal y GBA
         location_coords = {
-            'villa 1.11.14': (-34.6495752, -58.4411166),
+            'villa 1 11 14': (-34.6383, -58.4344),
             'BAJO FLORES': (-34.6415, -58.4267),
             'CABA': (-34.6037, -58.3816),
             'CABALLITO': (-34.6186, -58.4336),
@@ -764,7 +764,7 @@ def crear_seccion_metricas(df_mascotas, df_gastos, df_donaciones,df_mascotas_ori
         total_donaciones = df_donaciones['Monto'].sum() if 'Monto' in df_donaciones.columns else 0
         
         # Crear filtros para período anterior (para calcular tendencias)
-        print("filtros", filtros)
+        
         filtros_periodo_anterior = filtros.copy()
         
         # Estrategia para determinar período anterior basado en filtros aplicados
@@ -1813,7 +1813,6 @@ def main():
     st.markdown("""
     <div style="text-align: center; margin-top: 30px; padding: 10px; color: #7f8c8d; font-size: 0.8em;">
         Dashboard de @101_Rescataditos - Versión 2.0 | Última actualización: Abril 2025
-                Hecho por @glaraarteaga
     </div>
     """, unsafe_allow_html=True)
 
